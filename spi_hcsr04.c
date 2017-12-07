@@ -162,18 +162,13 @@ int main(int argc, char *argv[])
     if (ret == -1)
         pabort("can't get max speed hz");
 
-//    printf("spi device: %s\n", device);
-//    printf("spi mode: %d\n", mode);
-//    printf("bits per word: %d\n", bits);
-//    printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000);
-
 
     int measurements[num_measurements];
     for (int i=0; i<num_measurements; i++) {
         measurements[i] = transfer(fd);
     }
 
-    qsort(measurements, sizeof(measurements)/sizeof(measurements[0]), sizeof(measurements[0]), compare_ints);
+    qsort(measurements, num_measurements, sizeof(measurements[0]), compare_ints);
 
     printf("%d\n", measurements[num_measurements/2]);
     close(fd);
