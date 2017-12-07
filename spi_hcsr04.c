@@ -20,8 +20,6 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-
 static void pabort(const char *s)
 {
     perror(s);
@@ -30,26 +28,26 @@ static void pabort(const char *s)
 
 static const char *device = "/dev/spidev32766.0";
 static uint8_t mode;
-static uint8_t bits = 8;
 static uint32_t speed = 500000;
-static uint16_t delay;
 static uint32_t num_measurements = 100;
+static size_t buf_size = 256;
 
 static int transfer(int fd)
 {
     int ret;
-    uint8_t tx[256];
-    uint8_t rx[ARRAY_SIZE(tx)] = {0, };
+    uint8_t tx[buf_size];
+    uint8_t rx[buf_size];
+
     struct spi_ioc_transfer transfer_info = {
         .tx_buf = (unsigned long)tx,
         .rx_buf = (unsigned long)rx,
-        .len = ARRAY_SIZE(tx),
-        .delay_usecs = delay,
+        .len = buf_size,
+        .delay_usecs = 0,
         .speed_hz = speed,
-        .bits_per_word = bits,
+        .bits_per_word = 8,
     };
 
-    for (int i=0; i<ARRAY_SIZE(tx); i++) {
+    for (int i=0; i<buf_size; i++) {
         tx[i] = 0;
     }
     tx[0] = 255;
@@ -61,7 +59,7 @@ static int transfer(int fd)
 
     int num_bits_high = 0;
     int last_high_bit = 0;
-    for (ret = 0; ret < ARRAY_SIZE(tx); ret++) {
+    for (ret = 0; ret < buf_size; ret++) {
         for (int i=0; i<8; i++) {
             num_bits_high += (rx[ret] & 1);
             if (rx[ret] & 1) {
@@ -80,14 +78,8 @@ static void print_usage(const char *prog)
     puts("  -D --device            device to use (default /dev/spidev32766.0)\n"
          "  -s --speed             max speed (Hz)\n"
          "  -n --num-measurements  Number of measurements to take; result is the median of these. (Default 100)\n"
-         "  -d --delay             delay (usec)\n"
-         "  -b --bpw               bits per word \n"
-         "  -l --loop              loopback\n"
-         "  -H --cpha              clock phase\n"
-         "  -O --cpol              clock polarity\n"
-         "  -L --lsb               least significant bit first\n"
-         "  -C --cs-high           chip select active high\n"
-         "  -3 --3wire             SI/SO signals shared\n");
+         "  -b --buf-size          Number of bytes to read; affects maximum distance readable and how\n"
+    );
     exit(1);
 }
 
@@ -98,21 +90,12 @@ static void parse_opts(int argc, char *argv[])
             { "device",             1, 0, 'D' },
             { "speed",              1, 0, 's' },
             { "num-measurements",   1, 0, 'n' },
-            { "delay",              1, 0, 'd' },
-            { "bpw",                1, 0, 'b' },
-            { "loop",               0, 0, 'l' },
-            { "cpha",               0, 0, 'H' },
-            { "cpol",               0, 0, 'O' },
-            { "lsb",                0, 0, 'L' },
-            { "cs-high",            0, 0, 'C' },
-            { "3wire",              0, 0, '3' },
-            { "no-cs",              0, 0, 'N' },
-            { "ready",              0, 0, 'R' },
+            { "buf-size",           1, 0, 'b' },
             { NULL, 0, 0, 0 },
         };
         int c;
 
-        c = getopt_long(argc, argv, "D:s:n:d:b:lHOLC3NR", lopts, NULL);
+        c = getopt_long(argc, argv, "D:s:n:d:b:", lopts, NULL);
 
         if (c == -1)
             break;
@@ -127,35 +110,8 @@ static void parse_opts(int argc, char *argv[])
         case 'n':
             num_measurements = atoi(optarg);
             break;
-        case 'd':
-            delay = atoi(optarg);
-            break;
         case 'b':
-            bits = atoi(optarg);
-            break;
-        case 'l':
-            mode |= SPI_LOOP;
-            break;
-        case 'H':
-            mode |= SPI_CPHA;
-            break;
-        case 'O':
-            mode |= SPI_CPOL;
-            break;
-        case 'L':
-            mode |= SPI_LSB_FIRST;
-            break;
-        case 'C':
-            mode |= SPI_CS_HIGH;
-            break;
-        case '3':
-            mode |= SPI_3WIRE;
-            break;
-        case 'N':
-            mode |= SPI_NO_CS;
-            break;
-        case 'R':
-            mode |= SPI_READY;
+            buf_size = atoi(optarg);
             break;
         default:
             print_usage(argv[0]);
@@ -194,17 +150,6 @@ int main(int argc, char *argv[])
     ret = ioctl(fd, SPI_IOC_RD_MODE, &mode);
     if (ret == -1)
         pabort("can't get spi mode");
-
-    /*
-     * bits per word
-     */
-    ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits);
-    if (ret == -1)
-        pabort("can't set bits per word");
-
-    ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
-    if (ret == -1)
-        pabort("can't get bits per word");
 
     /*
      * max speed hz
