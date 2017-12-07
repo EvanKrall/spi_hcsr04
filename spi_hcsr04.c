@@ -33,6 +33,7 @@ static uint8_t mode;
 static uint8_t bits = 8;
 static uint32_t speed = 500000;
 static uint16_t delay;
+static uint32_t num_measurements = 100;
 
 static int transfer(int fd)
 {
@@ -76,16 +77,17 @@ static int transfer(int fd)
 static void print_usage(const char *prog)
 {
     printf("Usage: %s [-DsbdlHOLC3]\n", prog);
-    puts("  -D --device   device to use (default /dev/spidev32766.0)\n"
-         "  -s --speed    max speed (Hz)\n"
-         "  -d --delay    delay (usec)\n"
-         "  -b --bpw      bits per word \n"
-         "  -l --loop     loopback\n"
-         "  -H --cpha     clock phase\n"
-         "  -O --cpol     clock polarity\n"
-         "  -L --lsb      least significant bit first\n"
-         "  -C --cs-high  chip select active high\n"
-         "  -3 --3wire    SI/SO signals shared\n");
+    puts("  -D --device            device to use (default /dev/spidev32766.0)\n"
+         "  -s --speed             max speed (Hz)\n"
+         "  -n --num-measurements  Number of measurements to take; result is the median of these. (Default 100)\n"
+         "  -d --delay             delay (usec)\n"
+         "  -b --bpw               bits per word \n"
+         "  -l --loop              loopback\n"
+         "  -H --cpha              clock phase\n"
+         "  -O --cpol              clock polarity\n"
+         "  -L --lsb               least significant bit first\n"
+         "  -C --cs-high           chip select active high\n"
+         "  -3 --3wire             SI/SO signals shared\n");
     exit(1);
 }
 
@@ -93,23 +95,24 @@ static void parse_opts(int argc, char *argv[])
 {
     while (1) {
         static const struct option lopts[] = {
-            { "device",  1, 0, 'D' },
-            { "speed",   1, 0, 's' },
-            { "delay",   1, 0, 'd' },
-            { "bpw",     1, 0, 'b' },
-            { "loop",    0, 0, 'l' },
-            { "cpha",    0, 0, 'H' },
-            { "cpol",    0, 0, 'O' },
-            { "lsb",     0, 0, 'L' },
-            { "cs-high", 0, 0, 'C' },
-            { "3wire",   0, 0, '3' },
-            { "no-cs",   0, 0, 'N' },
-            { "ready",   0, 0, 'R' },
+            { "device",             1, 0, 'D' },
+            { "speed",              1, 0, 's' },
+            { "num-measurements",   1, 0, 'n' },
+            { "delay",              1, 0, 'd' },
+            { "bpw",                1, 0, 'b' },
+            { "loop",               0, 0, 'l' },
+            { "cpha",               0, 0, 'H' },
+            { "cpol",               0, 0, 'O' },
+            { "lsb",                0, 0, 'L' },
+            { "cs-high",            0, 0, 'C' },
+            { "3wire",              0, 0, '3' },
+            { "no-cs",              0, 0, 'N' },
+            { "ready",              0, 0, 'R' },
             { NULL, 0, 0, 0 },
         };
         int c;
 
-        c = getopt_long(argc, argv, "D:s:d:b:lHOLC3NR", lopts, NULL);
+        c = getopt_long(argc, argv, "D:s:n:d:b:lHOLC3NR", lopts, NULL);
 
         if (c == -1)
             break;
@@ -120,6 +123,9 @@ static void parse_opts(int argc, char *argv[])
             break;
         case 's':
             speed = atoi(optarg);
+            break;
+        case 'n':
+            num_measurements = atoi(optarg);
             break;
         case 'd':
             delay = atoi(optarg);
@@ -217,14 +223,14 @@ int main(int argc, char *argv[])
 //    printf("max speed: %d Hz (%d KHz)\n", speed, speed/1000);
 
 
-    int measurements[100];
-    for (int i=0; i<100; i++) {
+    int measurements[num_measurements];
+    for (int i=0; i<num_measurements; i++) {
         measurements[i] = transfer(fd);
     }
 
     qsort(measurements, sizeof(measurements)/sizeof(measurements[0]), sizeof(measurements[0]), compare_ints);
 
-    printf("%d\n", measurements[50]);
+    printf("%d\n", measurements[num_measurements/2]);
     close(fd);
 
     return ret;
