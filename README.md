@@ -9,6 +9,12 @@ Finally, we count the number of high bits in the response to measure the width o
 We assume that the HC-SR04 is the only thing connected to MOSI/MISO.
 Chip-select functionality is left as an exercise for the reader.
 
+## Installation
+
+`make`, `sudo make install`.
+You'll need gcc and make.
+On Debian/Ubuntu, you can install these with `apt-get install build-essential`
+
 ## Wiring specifics for [CHIP](https://getchip.com/pages/chip)
 
 The CHIP's GPIO pins are **not 5V tolerant**, so you will need a level converter, such as [this one from Sparkfun.](https://www.sparkfun.com/products/12009)
