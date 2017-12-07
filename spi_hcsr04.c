@@ -77,11 +77,13 @@ static void print_usage(const char *prog)
 {
     printf("Usage: %s [-DsbdlHOLC3]\n", prog);
     puts("  -D --device            device to use (default /dev/spidev32766.0)\n"
-         "  -s --speed             max speed (Hz)\n"
+         "  -s --speed             clock speed (Hz), default 500000\n"
          "  -n --num-measurements  Number of measurements to take; result is the median of\n"
          "                         these. (Default 100)\n"
          "  -b --buf-size          Number of bytes to read; affects maximum distance\n"
          "                         readable and how much time measurements take.\n"
+         "                         (Default 256, which with 500kHz clock gives a range of\n"
+         "                         approximately 1.4 meters)\n"
          "  -c --speed-of-sound    Speed of sound, in (preferred output units)/second.\n"
          "                         Default to 343.0, which is the speed of sound in\n"
          "                         meters/second at 20C. For output in millimeters, use\n"
